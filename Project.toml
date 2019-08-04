@@ -1,0 +1,15 @@
+name = "FeatherScope"
+uuid = "cd509344-b550-11e9-0787-e78261257376"
+authors = ["Galen Lynch <galen.lynch@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+GLUtilities = "8b4c6747-1f02-570a-a961-a96037df41d6"
+GaussianMixtures = "cc18c42c-b769-54ff-9e2a-b28141a64aae"
+Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
+MAT = "23992714-dd62-5051-b70f-ba57cb901cac"
+Mmap = "a63ad114-7e13-5084-954f-fe012c677804"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+VideoIO = "d6d074c3-1acf-5d4c-9a43-ef38773959a2"
