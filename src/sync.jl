@@ -38,50 +38,6 @@ function check_dropped_frames(timestamps; framerate = 30.0, tol = 0.1)
     return false
 end
 
-function align_feather_files(
-    vidfile,
-    viddir = pwd(),
-    roi::AbstractVector{<:UnitRange{<:Integer}} = UnitRange{Int}[],
-    exposed_thresh = nothing,
-    dark_thresh = nothing;
-    skip = 0,
-    thresh_stds = 3.0
-) where S<:AbstractString
-    vidpath = joinpath(viddir, vidfile)
-    isfile(vidpath) || error("Could not find video file at $vidpath")
-
-    m = match(FEATHER_VIDEO_REG, vidfile)
-    m == nothing && throw(ArgumentError("Invalid video file $vidfile"))
-    viddt = DateTime(m[1]::SubString{String}, FEATHER_DTF)
-
-    daqpath = joinpath(viddir, make_feather_daqname(viddt))
-    isfile(daqpath) || error("Could not find daq file at $daqpath")
-    tspath = joinpath(viddir, make_feather_timestampsname(viddt))
-    isfile(tspath) || error("Could not find time stamp file at $tspath")
-
-    intensities = frame_intensities(vidpath, roi)
-    if exposed_thresh == nothing || dark_thresh == nothing
-        exposed_threshs, dark_thresh =
-            two_gaussian_thresholds(intensities, thresh_stds)
-    end
-
-    micdata, syncdata, shutterdata = read_feather_video_daq_file(daqpath)
-    sync_indices, exposed_frame_periods, exposed_sync_periods =
-        sync_exposed_video_daq(
-            syncdata,
-            shutterdata,
-            intensities,
-            exposed_thresh,
-            dark_thresh,
-            skip = skip,
-        )
-
-    return sync_indices, exposed_frame_periods, exposed_sync_periods
-end
-
-align_feather_files(dir::AbstractString) =
-    align_feather_files(joindir.(dir, readdir(dir)))
-
 function find_sync_edges(
     sync_pulses::AbstractVector{<:Number},
     sync_high::Number = FEATHER_SYNC_HIGH,
@@ -161,6 +117,7 @@ function two_gaussian_thresholds(data, thresh_stds)
     exposed_thresh, dark_thresh
 end
 
+"""
 function find_exposed_periods(
     sync_indices::AbstractVector{<:Integer},
     shutter_open_periods::AbstractMatrix{<:Integer},
@@ -168,20 +125,35 @@ function find_exposed_periods(
     n_sync_samples::Integer,
     exposed_thresh::Number,
     dark_thresh::Number;
-    skip = 0
+    skip_shutters = 0
+) -> exposed_frame_periods, exposed_sync_periods
+
+Finds the exposed video frame numbers, and the corresponding sync pulse numbers.
+Note that `exposed_sync_periods` may refer to indices larger than the length of
+`sync_indices`, indicating that the last frame of the video occurred after the
+sync pulses were no longer recorded.
+"""
+function find_exposed_periods(
+    sync_indices::AbstractVector{<:Integer},
+    shutter_open_periods::AbstractMatrix{<:Integer},
+    image_intensities::AbstractVector{<:Number},
+    n_sync_samples::Integer,
+    exposed_thresh::Number,
+    dark_thresh::Number;
+    skip_shutters = 0
 )
     nframe = length(image_intensities)
     nopen = size(shutter_open_periods, 2)
     @show size(shutter_open_periods)
     @show nopen
     startopen = shutter_open_periods[1, 1] == 1
-    skipped_openings =  div(skip + startopen, 2)
+    skipped_openings =  div(skip_shutters + startopen, 2)
     nout = nopen - skipped_openings
     exposed_frame_periods = similar(shutter_open_periods, 2, nout)
-    shutterno = skip + startopen
+    shutterno = skip_shutters + startopen
     exposed_sync_periods = similar(exposed_frame_periods)
-    search_startopen = !xor(iseven(skip), startopen)
-    shutterno = skip + startopen + 1
+    search_startopen = !xor(iseven(skip_shutters), startopen)
+    shutterno = skip_shutters + startopen + 1
     if search_startopen
         exposed_frame_search = 1
         exposed_frame_periods[1, 1] = 1
@@ -229,7 +201,7 @@ function find_exposed_periods(
                 exposed_frame_search + find_first_edge_trigger(
                     image_intensities[exposed_frame_search:end], dark_thresh, <=
                 )
-            
+
             exposed_frame_periods[2, openno], exposed_sync_periods[2, openno] =
                 find_fully_exposed_frame(
                     sync_indices,
@@ -341,42 +313,13 @@ function find_fully_exposed_frame(
     return fully_exposed_frame, partial_sync_no + dark_search_direction
 end
 
-mean_intensity(img) = mean(Gray.(img)).val::Float64
-
-function frame_intensities(vidname::AbstractString, roi = UnitRange{Int}[])
-    intensities = Float64[]
-    io = VideoIO.open(vidname)
-    try
-        f = openvideo(io)
-        try
-            img = read(f)
-            if isempty(roi)
-                nv, nh = size(img)
-                roi = [UnitRange(1, nv), UnitRange(1, nh)]
-            elseif length(roi) != 2
-                error("roi must be empty or length two")
-            end
-            push!(intensities, mean_intensity(view(img, roi[1], roi[2])))
-            while !eof(f)
-                read!(f, img)
-                push!(intensities, mean_intensity(view(img, roi[1], roi[2])))
-            end
-        finally
-            close(f)
-        end
-    finally
-        close(io)
-    end
-    intensities
-end
-
 function sync_exposed_video_daq(
     syncdata,
     shutterdata,
     image_intensities,
     exposed_thresh,
     dark_thresh;
-    skip = 0
+    skip_shutters = 0
 )
     n_sync_samples = length(syncdata)
     sync_indices = find_sync_edges(syncdata)
@@ -388,69 +331,51 @@ function sync_exposed_video_daq(
         n_sync_samples,
         exposed_thresh,
         dark_thresh,
-        skip = skip
+        skip_shutters = skip_shutters
     )
     sync_indices, exposed_frame_periods, exposed_sync_periods
 end
 
-function crop_clip_video(
+function align_feather_files(
     vidfile,
-    viddir,
-    outdir,
-    roi,
-    exposed_periods,
-    framerate;
-    force = false
-)
-    isdir(outdir) || throw(ArgumentError("Output directory $outdir does not exist"))
-    inputpath = joinpath(viddir, vidfile)
-    isfile(inputpath) || throw(ArugmentError("Input video $inputpath does not exist"))
+    viddir = pwd(),
+    roi::AbstractVector{<:UnitRange{<:Integer}} = UnitRange{Int}[],
+    exposed_thresh = nothing,
+    dark_thresh = nothing;
+    skip_shutters = 0,
+    thresh_stds = 3.0
+) where S<:AbstractString
+    vidpath = joinpath(viddir, vidfile)
+    isfile(vidpath) || error("Could not find video file at $vidpath")
 
-    nsplit = size(exposed_periods, 2)
-    viddt = feather_file_dt(vidfile)
-    dt_str = make_feather_dt_str(viddt)
+    m = match(FEATHER_VIDEO_REG, vidfile)
+    m == nothing && throw(ArgumentError("Invalid video file $vidfile"))
+    viddt = DateTime(m[1]::SubString{String}, FEATHER_DTF)
 
-    offsets = (exposed_periods[1, :] .- 1) ./ framerate
-    durations = (exposed_periods[2, :] .- exposed_periods[1, :] .+ 1) ./ framerate
+    daqpath = joinpath(viddir, make_feather_daqname(viddt))
+    isfile(daqpath) || error("Could not find daq file at $daqpath")
+    tspath = joinpath(viddir, make_feather_timestampsname(viddt))
+    isfile(tspath) || error("Could not find time stamp file at $tspath")
 
-    roi_topleft = first.(roi)
-    roi_spans = length.(roi)
-
-    roi_str = "$(roi_spans[2]):$(roi_spans[1]):$(roi_topleft[2]):$(roi_topleft[1])"
-    vidsize_str = "$(roi_spans[2])x$(roi_spans[1])"
-
-    newfiles = Vector{String}(undef, nsplit)
-    for splitno in 1:nsplit
-        offset_str = @sprintf "%.3f" offsets[splitno]
-        dur_str = @sprintf "%.3f" durations[splitno]
-        offset_file_str = replace(offset_str, '.' => 's')
-
-        outfile = format(viddt, FEATHER_DTF) * "_video_offset_" * offset_file_str * ".avi"
-        outpath = joinpath(outdir, outfile)
-        if isfile(outpath)
-            if force
-                rm(outpath)
-            else
-                error("Video $outpath already exists, set 'force = true' to overwrite")
-            end
-        end
-
-        run(
-              `
-                ffmpeg
-                -i $inputpath
-                -ss $(offset_str)
-                -t $(dur_str)
-                -filter:v
-                "crop=$(roi_str)"
-                -c:v rawvideo
-                -pixel_format pal8
-                -framerate $framerate
-                -video_size $(vidsize_str)
-                $(outpath)
-              `
-        )
-        newfiles[splitno] = outpath
+    intensities = frame_intensities(vidpath, roi)
+    if exposed_thresh == nothing || dark_thresh == nothing
+        exposed_threshs, dark_thresh =
+            two_gaussian_thresholds(intensities, thresh_stds)
     end
-    newfiles
+
+    micdata, syncdata, shutterdata = read_feather_video_daq_file(daqpath)
+    sync_indices, exposed_frame_periods, exposed_sync_periods =
+        sync_exposed_video_daq(
+            syncdata,
+            shutterdata,
+            intensities,
+            exposed_thresh,
+            dark_thresh,
+            skip_shutters = skip_shutters,
+        )
+
+    return sync_indices, exposed_frame_periods, exposed_sync_periods
 end
+
+align_feather_files(dir::AbstractString) =
+    align_feather_files(joindir.(dir, readdir(dir)))

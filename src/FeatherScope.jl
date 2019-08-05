@@ -25,9 +25,12 @@ export
 
     # Functions
     align_feather_files,
+    avi_frame_size,
     check_dropped_frames,
     check_featherdat_offset,
+    count_frames,
     crop_clip_video,
+    open_avi,
     feather_file_dt,
     find_exposed_periods,
     find_sync_edges,
@@ -39,11 +42,13 @@ export
     make_feather_vidname,
     make_feather_daqname,
     make_feather_timestampsname,
+    read_avi,
     read_feather_video_daq_file,
     read_feather_timestamps,
     sync_exposed_video_daq
 
 include("adc.jl")
+include("video.jl")
 include("sync.jl")
 
 end # module

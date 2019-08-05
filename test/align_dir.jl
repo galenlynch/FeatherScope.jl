@@ -1,15 +1,14 @@
 using FeatherScope,
     GLUtilities,
-    Dates,
-    Destruct
+    Dates
 
 using FeatherScope: FEATHER_VIDEO_REG
 
-datadir = "/home/glynch/mnt/shared/joebob/7221/"
+datadir = "/home/glynch/Documents/Data/gcamp/7221/2019-04-03"
 datafiles = joinpath.(datadir, readdir(datadir))
 framerate = 30
 
-analysisdir = "/home/glynch/Documents/Analysis/gcamp/7221/"
+analysisdir = "/home/glynch/Documents/Analysis/gcamp/7221/2019-04-03"
 vidlistfile = "selected_videos.csv"
 vidlistpath = joinpath(analysisdir, vidlistfile)
 files_to_analyze = readlines(vidlistpath)
