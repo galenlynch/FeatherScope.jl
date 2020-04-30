@@ -19,6 +19,7 @@ using GLUtilities: find_all_edge_triggers, find_first_edge_trigger
 export
     # Constants
     FEATHER_VIDEO_DAQ_FS,
+    FEATHER_DT_REG,
 
     # Types
     FeatherAdcChannelResults,

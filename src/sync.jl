@@ -2,6 +2,7 @@ const FEATHER_VIDEO_DAQ_FS = 48000.0
 const FEATHER_SYNC_HIGH = 3.3
 const FEATHER_SHUTTER_HIGH = 5.0
 
+const FEATHER_DT_REG = r"(\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2})"
 const FEATHER_VIDEO_DAQ_REG = r"(\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2})_DAQ\.mat"
 const FEATHER_VIDEO_REG = r"(\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2})_video\.avi"
 const FEATHER_TIMESTAMP_REG = r"(\d{4}_\d{2}_\d{2}_\d{2}_\d{2}_\d{2})_timestamps\.mat"
