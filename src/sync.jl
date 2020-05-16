@@ -51,53 +51,17 @@ function find_sync_edges(
 end
 
 function find_shutter_openings(shutter_signal, shutter_high = FEATHER_SHUTTER_HIGH)
-    nsamp = length(shutter_signal)
-    shutter_openings = find_all_edge_triggers(shutter_signal, shutter_high / 2)
-    shutter_closings = find_all_edge_triggers(shutter_signal, shutter_high / 2, <=)
-    nopen = length(shutter_openings)
-    nclose = length(shutter_closings)
-    if (nclose == 0) & (nopen == 0)
+    open_periods = indices_above_thresh(shutter_signal, shutter_high / 2)
+    nopen = size(open_periods, 2)
+    if nopen == 1
+        nsig = length(shutter_signal)
+        if open_periods[1] == 1 && open_periods[2] == nsig
+            error("No shutter edges found: can't synchronize video")
+        end
+    elseif nopen == 0
         error("No shutter edges found: can't synchronize video")
     end
-    open_periods = Matrix{Int}(undef, 2, nopen + 1)
-    nout = 0
-    if nopen > 0
-        if nclose > 0
-            if shutter_closings[1] < shutter_openings[1]
-                nout = 1
-                open_periods[1, 1] = 1
-                open_periods[2, 1] = shutter_closings[1] - 1
-                closeno = 2
-            else
-                closeno = 1
-            end
-            for openno in 1:nopen
-                if closeno <= nclose
-                    nout += 1
-                    open_periods[1, nout] = shutter_openings[openno]
-                    open_periods[2, nout] = shutter_closings[closeno] - 1
-                    closeno += 1
-                else
-                    nout += 1
-                    open_periods[1, nout] = shutter_openings[openno]
-                    open_periods[2, nout] = nsamp
-                    break
-                end
-            end
-        else
-            nout = 1
-            open_periods[1, 1] = shutter_openings[1]
-            open_periods[2, 1] = nsamp
-        end
-    else
-        # nclose must be >0 because if both are zero than would have errored
-        # above
-        nout = 1
-        open_periods[1, 1] = 1
-        open_periods[2, 1] = shutter_closings[1] - 1
-    end
-
-    open_periods[:, 1:nout]
+    open_periods
 end
 
 function two_gaussian_thresholds(data, thresh_stds)
