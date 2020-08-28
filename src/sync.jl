@@ -39,30 +39,21 @@ function check_dropped_frames(timestamps; framerate = 30.0, tol = 0.1)
     return false
 end
 
-function find_sync_edges(
-    sync_pulses::AbstractVector{<:Number},
-    sync_high::Number = FEATHER_SYNC_HIGH,
-)
-    sync_indices = find_all_edge_triggers(sync_pulses, sync_high / 2)
-    npulse = length(sync_indices)
-    npulse == 0 && error("Found no sync pulses")
-
-    sync_indices
+function find_sync_edges(sync_pulses::AbstractVector{<:Number},
+                         sync_high::Number = FEATHER_SYNC_HIGH,)
+    find_all_edge_triggers(sync_pulses, sync_high / 2)
 end
 
-function find_shutter_openings(shutter_signal, shutter_high = FEATHER_SHUTTER_HIGH)
-    open_periods = indices_above_thresh(shutter_signal, shutter_high / 2)
-    nopen = size(open_periods, 2)
-    if nopen == 1
-        nsig = length(shutter_signal)
-        if open_periods[1] == 1 && open_periods[2] == nsig
-            error("No shutter edges found: can't synchronize video")
-        end
-    elseif nopen == 0
-        error("No shutter edges found: can't synchronize video")
-    end
-    open_periods
+find_sync_edges(sync_data::AbstractMatrix, args...) =
+    find_sync_edges(view(sync_data, 2, :), args...)
+
+function find_shutter_openings(shutter_signal::AbstractVector{<:Number},
+                               shutter_high = FEATHER_SHUTTER_HIGH)
+    find_all_edge_triggers(shutter_signal, shutter_high / 2)
 end
+
+find_shutter_openings(sync_data::AbstractMatrix, args...) =
+    find_sync_edges(view(sync_data, 3, :), args...)
 
 function two_gaussian_thresholds(data, thresh_stds)
     xs = reshape(data, :, 1)
