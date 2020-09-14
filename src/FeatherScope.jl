@@ -34,8 +34,6 @@ export
     open_avi,
     feather_file_dt,
     find_exposed_periods,
-    find_sync_edges,
-    find_shutter_openings,
     frame_intensities,
     guess_shutter_frames,
     load_featherscope_adc_reads,
