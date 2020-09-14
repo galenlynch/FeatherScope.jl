@@ -47,13 +47,13 @@ end
 find_sync_edges(sync_data::AbstractMatrix, args...) =
     find_sync_edges(view(sync_data, 2, :), args...)
 
-function find_shutter_openings(shutter_signal::AbstractVector{<:Number},
+function find_shutter_edges(shutter_signal::AbstractVector{<:Number},
                                shutter_high = FEATHER_SHUTTER_HIGH)
     find_all_edge_triggers(shutter_signal, shutter_high / 2)
 end
 
-find_shutter_openings(sync_data::AbstractMatrix, args...) =
-    find_sync_edges(view(sync_data, 3, :), args...)
+find_shutter_edges(sync_data::AbstractMatrix, args...) =
+    find_shutter_edges(view(sync_data, 3, :), args...)
 
 function two_gaussian_thresholds(data, thresh_stds)
     xs = reshape(data, :, 1)
@@ -279,7 +279,7 @@ function sync_exposed_video_daq(
 )
     n_sync_samples = length(syncdata)
     sync_indices = find_sync_edges(syncdata)
-    shutter_open_periods = find_shutter_openings(shutterdata)
+    shutter_open_periods = find_shutter_edges(shutterdata)
     exposed_frame_periods, exposed_sync_periods = find_exposed_periods(
         sync_indices,
         shutter_open_periods,
