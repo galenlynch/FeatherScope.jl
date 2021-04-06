@@ -1,7 +1,7 @@
 name = "FeatherScope"
 uuid = "cd509344-b550-11e9-0787-e78261257376"
 authors = ["Galen Lynch <galen.lynch@gmail.com>"]
-version = "0.1.4"
+version = "0.1.5"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -20,7 +20,7 @@ GLUtilities = "0.1.1 - 0.2"
 GaussianMixtures = "0.3"
 Images = "0.22 - 0.23"
 MAT = "0.8 - 0.9"
-VideoIO = "0.6 - 0.8"
+VideoIO = "0.6 - 0.9"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
