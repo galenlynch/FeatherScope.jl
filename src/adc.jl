@@ -37,9 +37,8 @@ function load_featherscope_adc_reads(datfile, header_skip = 81, ncheck = 10)
     lv_9 = similar(lv_8)
 
     # First two bytes are ok because we just checked them
-    adc_read, ain9, fv, lv = unpack_adc_read(
-        data[data_start], data[data_start + 1]
-    )::Tuple{UInt16, Bool, Bool, Bool}
+    adc_read, ain9, fv, lv =
+        unpack_adc_read(data[data_start], data[data_start+1])::Tuple{UInt16,Bool,Bool,Bool}
     if ain9
         push!(sampnos_9, 1)
         push!(reads_9, adc_read)
@@ -55,23 +54,23 @@ function load_featherscope_adc_reads(datfile, header_skip = 81, ncheck = 10)
     sampno = 2
     bytepos = data_start + 2
     while bytepos < ndata - 1
-        maybe_read = unpack_adc_read(data[bytepos], data[bytepos + 1])
+        maybe_read = unpack_adc_read(data[bytepos], data[bytepos+1])
         if maybe_read == nothing
             # Something is wrong with the data
-            if bytepos + ncheck  + 3 < ndata
+            if bytepos + ncheck + 3 < ndata
                 # Done
                 break
             else
                 if !isempty(sampnos_8)
                     push!(
                         ainch8_res,
-                        FeatherAdcChannelResults(sampnos_8, reads_8, fv_8, lv_8)
+                        FeatherAdcChannelResults(sampnos_8, reads_8, fv_8, lv_8),
                     )
                 end
                 if !isempty(sampnos_9)
                     push!(
                         ainch9_res,
-                        FeatherAdcChannelResults(sampnos_9, reads_9, fv_9, lv_9)
+                        FeatherAdcChannelResults(sampnos_9, reads_9, fv_9, lv_9),
                     )
                 end
                 if check_featherdat_offset(data, bytepos + 3, ncheck)
@@ -85,7 +84,7 @@ function load_featherscope_adc_reads(datfile, header_skip = 81, ncheck = 10)
                 # Check for alignment
             end
         else
-            adc_read, ain9, fv, lv = maybe_read::Tuple{UInt16, Bool, Bool, Bool}
+            adc_read, ain9, fv, lv = maybe_read::Tuple{UInt16,Bool,Bool,Bool}
             last_ain9 = ain9
             if ain9
                 push!(sampnos_9, 1)
@@ -103,16 +102,10 @@ function load_featherscope_adc_reads(datfile, header_skip = 81, ncheck = 10)
         sampno += 1
     end
     if !isempty(sampnos_8)
-        push!(
-            ainch8_res,
-            FeatherAdcChannelResults(sampnos_8, reads_8, fv_8, lv_8)
-        )
+        push!(ainch8_res, FeatherAdcChannelResults(sampnos_8, reads_8, fv_8, lv_8))
     end
     if !isempty(sampnos_9)
-        push!(
-            ainch9_res,
-            FeatherAdcChannelResults(sampnos_9, reads_9, fv_9, lv_9)
-        )
+        push!(ainch9_res, FeatherAdcChannelResults(sampnos_9, reads_9, fv_9, lv_9))
     end
     return ainch8_res, ainch9_res
 end
@@ -123,13 +116,13 @@ function check_featherdat_offset(data, startposition, ncheck)
     ok = true
     checkno = 0
     while ok && checkno < ncheck
-        ok = check_highbyte(data[startposition + 2 * (checkno)])
+        ok = check_highbyte(data[startposition+2*(checkno)])
         checkno += 1
     end
     ok
 end
 
-check_bit(byte::T, mask::T) where T = (byte & mask) != zero(T)
+check_bit(byte::T, mask::T) where {T} = (byte & mask) != zero(T)
 
 function unpack_adc_read(blow, bhigh)
     check_highbyte(bhigh) || return nothing
@@ -140,4 +133,3 @@ function unpack_adc_read(blow, bhigh)
     lv = check_bit(bhigh, FEATHER_LV_gm)
     return adc_read, ain9, fv, lv
 end
-
