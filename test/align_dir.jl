@@ -1,6 +1,4 @@
-using FeatherScope,
-    GLUtilities,
-    Dates
+using FeatherScope, GLUtilities, Dates
 
 using FeatherScope: FEATHER_VIDEO_REG
 
@@ -30,24 +28,22 @@ ok_viddurs = ok_vidlens ./ framerate
 
 time_between_vids = diff(vid_starttimes)
 s_between_vids = map(x -> x.value / 1000, time_between_vids)
-overlap_mask = s_between_vids .<= ok_viddurs[1:end-1]
+overlap_mask = s_between_vids .<= ok_viddurs[1:(end-1)]
 
 sync_indices = Vector{Vector{Int}}(undef, nok)
 exposed_frame_periods = similar(sync_indices, Matrix{Int})
 exposed_sync_periods = similar(exposed_frame_periods)
-for i in 1:nok
+for i = 1:nok
     @show i
     sync_indices[i], exposed_frame_periods[i], exposed_sync_periods[i] =
-        align_feather_files(
-            files_to_analyze[i], datadir, roi, exposed_thresh, dark_thresh
-        )
+        align_feather_files(files_to_analyze[i], datadir, roi, exposed_thresh, dark_thresh)
 
 end
 
 syncpath = joinpath(analysisdir, "videosync.csv")
 
 open(syncpath, "w") do io
-    for i in 1:nok
+    for i = 1:nok
         println(
             io,
             join(
@@ -55,10 +51,10 @@ open(syncpath, "w") do io
                     files_to_analyze[i],
                     repr(sync_indices[i]),
                     repr(exposed_frame_periods[i]),
-                    repr(exposed_sync_periods[i])
+                    repr(exposed_sync_periods[i]),
                 ],
-                '|'
-            )
+                '|',
+            ),
         )
     end
 end
@@ -72,6 +68,6 @@ for vidno = 1:nok
         roi,
         exposed_frame_periods[vidno],
         framerate,
-        force = true
+        force = true,
     )
 end
