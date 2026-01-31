@@ -12,7 +12,7 @@ function open_avi(f, vidname, args...; kwargs...)
     end
 end
 
-mean_intensity(img) = mean(Gray.(img)).val::Float64
+mean_intensity(img) = gray(mean(Gray.(img)))
 
 function frame_intensities(vidname::AbstractString, roi = UnitRange{Int}[])
     open_avi(vidname) do vidf
@@ -89,11 +89,11 @@ function crop_clip_video(
     roi,
     exposed_periods,
     framerate;
-    force = false
+    force = false,
 )
     isdir(outdir) || throw(ArgumentError("Output directory $outdir does not exist"))
     inputpath = joinpath(viddir, vidfile)
-    isfile(inputpath) || throw(ArugmentError("Input video $inputpath does not exist"))
+    isfile(inputpath) || throw(ArgumentError("Input video $inputpath does not exist"))
 
     nsplit = size(exposed_periods, 2)
     viddt = feather_file_dt(vidfile)
@@ -109,7 +109,7 @@ function crop_clip_video(
     vidsize_str = "$(roi_spans[2])x$(roi_spans[1])"
 
     newfiles = Vector{String}(undef, nsplit)
-    for splitno in 1:nsplit
+    for splitno = 1:nsplit
         offset_str = @sprintf "%.3f" offsets[splitno]
         dur_str = @sprintf "%.3f" durations[splitno]
         offset_file_str = replace(offset_str, '.' => 's')
@@ -124,21 +124,19 @@ function crop_clip_video(
             end
         end
 
-        run(
-              `
-                ffmpeg
-                -i $inputpath
-                -ss $(offset_str)
-                -t $(dur_str)
-                -filter:v
-                "crop=$(roi_str)"
-                -c:v rawvideo
-                -pixel_format pal8
-                -framerate $framerate
-                -video_size $(vidsize_str)
-                $(outpath)
-              `
-        )
+        run(`
+              ffmpeg
+              -i $inputpath
+              -ss $(offset_str)
+              -t $(dur_str)
+              -filter:v
+              "crop=$(roi_str)"
+              -c:v rawvideo
+              -pixel_format pal8
+              -framerate $framerate
+              -video_size $(vidsize_str)
+              $(outpath)
+            `)
         newfiles[splitno] = outpath
     end
     newfiles

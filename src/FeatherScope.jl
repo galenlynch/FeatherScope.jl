@@ -9,12 +9,12 @@ using Printf: @sprintf
 # Public Packages
 import VideoIO
 using VideoIO: openvideo
-using Images: Gray
+using Images: Gray, gray
 using MAT: matopen
 using GaussianMixtures: GMM, llpg
 
 # Private Packages
-using GLUtilities: find_all_edge_triggers, find_first_edge_trigger
+using SignalIndices: find_all_edge_triggers, find_first_edge_trigger
 
 export
     # Constants
