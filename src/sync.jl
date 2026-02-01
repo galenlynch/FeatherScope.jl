@@ -304,7 +304,7 @@ function align_feather_files(
     dark_thresh = nothing;
     skip_shutters = 0,
     thresh_stds = 3.0,
-) where {S<:AbstractString}
+)
     vidpath = joinpath(viddir, vidfile)
     isfile(vidpath) || error("Could not find video file at $vidpath")
 

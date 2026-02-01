@@ -1,6 +1,6 @@
 name = "FeatherScope"
 uuid = "cd509344-b550-11e9-0787-e78261257376"
-version = "0.1.6"
+version = "0.1.7"
 authors = ["Galen Lynch <galen@galenlynch.com>"]
 
 [deps]
